@@ -1,0 +1,101 @@
+#importing libraries
+import pandas
+from pandas.plotting import scatter_matrix
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+from sklearn import model_selection
+from sklearn.ensemble import VotingClassifier
+from sklearn import datasets
+from sklearn.preprocessing import LabelEncoder
+
+#Importing datasets
+iris=datasets.load_iris()
+
+x=iris.data
+y=iris.target
+
+#checking the dimensions of the dataset
+print(x.shape)
+
+dx = pandas.DataFrame(data=x)
+dy = pandas.DataFrame(data=y)
+
+print(dx.describe())
+
+dx.head()
+
+dy.head(101)
+
+#univariate plot
+fig, axes = plt.subplots(2,2) # create figure and axes
+df = pandas.DataFrame(data=x)
+for i,el in enumerate(list(df.columns.values)[:-1]):
+    a = df.boxplot(el, ax=axes.flatten()[i])
+#fig.delaxes(axes[1,1]) # remove empty subplot
+plt.tight_layout() 
+plt.show()
+
+#univariate analysis - sharing axis
+dx.plot(kind='box',layout=(2,2),sharex=False,sharey=False)
+plt.show()
+
+#histogram of the variable
+dx.hist()
+plt.show()
+
+#Multivariant plot
+scatter_matrix(dx)
+plt.show()
+
+#creating a validation set
+array=dx.values
+X=array[:,0:4]
+label_encoder = LabelEncoder()
+Y = label_encoder.fit_transform(dy)
+
+#splitting 'train & test sets'
+x_train,x_test,y_train,y_test=train_test_split(X,Y,test_size=0.2,random_state=42)
+
+#builiding models
+models=[]
+models.append(("LR",LogisticRegression(solver='liblinear',multi_class="ovr")))
+models.append(("LDS",LinearDiscriminantAnalysis()))
+models.append(("KNN",KNeighborsClassifier()))
+models.append(("NB",GaussianNB()))
+models.append(("SVM",SVC(gamma='auto')))
+
+#evaluvating models
+results=[]
+names=[]
+for name,model in models:
+    kfold=StratifiedKFold(n_splits=10,shuffle=True,random_state=1)
+    cv_results=cross_val_score(model,x_train,y_train,cv=kfold,scoring="accuracy")
+    results.append(cv_results)
+    names.append(name)
+    print("%s %f (%f)"%(name,cv_results.mean(),cv_results.std()))
+    
+#comparing models
+plt.boxplot(results,labels=names)
+plt.title("Algorithm comparison")
+plt.show()
+
+#making predictions on svm
+classifier = SVC(kernel = 'linear', random_state = 0)
+classifier.fit(x_train, y_train)
+y_pred = classifier.predict(x_test)
+
+#evaluvating predictions
+print(accuracy_score(y_test,y_pred))
+print(confusion_matrix(y_test,y_pred))
+print(classification_report(y_test,y_pred))
